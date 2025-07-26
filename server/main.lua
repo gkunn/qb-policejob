@@ -14,8 +14,10 @@ end
 local function UpdateBlips()
     local dutyPlayers = {}
     local players = QBCore.Functions.GetQBPlayers()
-    for i = 1, #players do
-        local v = players[i]
+    -- for i = 1, #players do
+    --     local v = players[i]
+    -- 警察と救急のGPSが表示されなくなる不具合の修正
+    for _, v in pairs(players) do
         if v and (v.PlayerData.job.type == 'leo' or v.PlayerData.job.type == 'ems') and v.PlayerData.job.onduty then
             local coords = GetEntityCoords(GetPlayerPed(v.PlayerData.source))
             local heading = GetEntityHeading(GetPlayerPed(v.PlayerData.source))
@@ -135,9 +137,6 @@ RegisterNetEvent('qb-policejob:server:stash', function()
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
     if Player.PlayerData.job.name ~= 'police' then return end
-
-    local stashId = 'police_locker_' .. Player.PlayerData.citizenid
-
     -- ox_inventory が有効な場合に対応（クライアント側イベントで制御される想定）
     TriggerClientEvent('police:client:OpenPersonalLocker', src)
 end)
