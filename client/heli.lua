@@ -31,13 +31,11 @@ local function IsPlayerInPolmav()
 	local lPed = PlayerPedId()
     local vehicle = GetVehiclePedIsIn(lPed, false)
     local model = GetEntityModel(vehicle)
-
     for _, heliModel in ipairs(Config.PoliceHelicopter) do
         if model == GetHashKey(heliModel) then
             return true
         end
     end
-
     return false
 end
 
