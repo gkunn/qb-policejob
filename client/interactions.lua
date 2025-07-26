@@ -215,13 +215,22 @@ end)
 
 RegisterNetEvent('police:client:EscortPlayer', function()
     local player, distance = QBCore.Functions.GetClosestPlayer()
+    -- 車両からエスコートができないように制限
+    local ped = PlayerPedId()
+    if not IsPedInAnyVehicle(ped, true) then
     if player ~= -1 and distance < 2.5 then
         local playerId = GetPlayerServerId(player)
         if not isHandcuffed and not isEscorted then
             TriggerServerEvent('police:server:EscortPlayer', playerId)
+                return
+            end
+        else
+            QBCore.Functions.Notify(Lang:t('error.none_nearby'), 'error')
+            return
         end
     else
-        QBCore.Functions.Notify(Lang:t('error.none_nearby'), 'error')
+        QBCore.Functions.Notify(Lang:t('error.vehicle_escort'), 'error')
+        return
     end
 end)
 
@@ -287,13 +296,16 @@ RegisterNetEvent('police:client:GetEscorted', function(playerId)
     QBCore.Functions.GetPlayerData(function(PlayerData)
         if PlayerData.metadata['isdead'] or isHandcuffed or PlayerData.metadata['inlaststand'] then
             if not isEscorted then
+                -- print("escort true")
                 isEscorted = true
                 local dragger = GetPlayerPed(GetPlayerFromServerId(playerId))
                 SetEntityCoords(ped, GetOffsetFromEntityInWorldCoords(dragger, 0.0, 0.45, 0.0))
                 AttachEntityToEntity(ped, dragger, 11816, 0.45, 0.45, 0.0, 0.0, 0.0, 0.0, false, false, false, false, 2, true)
             else
+                -- print("escort false")
                 isEscorted = false
                 DetachEntity(ped, true, false)
+                TriggerServerEvent('police:server:ReleaseEscort', playerId) -- playerIdはエスコートしているプレイヤー
             end
             TriggerEvent('hospital:client:isEscorted', isEscorted)
         end

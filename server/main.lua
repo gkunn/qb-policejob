@@ -2,6 +2,13 @@
 QBCore = exports['qb-core']:GetCoreObject()
 local updatingCops = false
 
+-- スタッシュ
+local ox_inventory = nil
+if GetResourceState('ox_inventory') ~= 'missing' then
+    ox_inventory = exports.ox_inventory
+end
+
+
 -- Functions
 
 local function UpdateBlips()
@@ -113,15 +120,55 @@ AddEventHandler('onResourceStart', function(resourceName)
     end
 end)
 
+-- RegisterNetEvent('qb-policejob:server:stash', function()
+--     local src = source
+--     local Player = QBCore.Functions.GetPlayer(src)
+--     if not Player then return end
+--     if Player.PlayerData.job.type ~= 'leo' then return end
+--     local citizenId = Player.PlayerData.citizenid
+--     local stashName = 'policestash_' .. citizenId
+--     exports['qb-inventory']:OpenInventory(src, stashName)
+-- end)
+
 RegisterNetEvent('qb-policejob:server:stash', function()
     local src = source
     local Player = QBCore.Functions.GetPlayer(src)
     if not Player then return end
-    if Player.PlayerData.job.type ~= 'leo' then return end
-    local citizenId = Player.PlayerData.citizenid
-    local stashName = 'policestash_' .. citizenId
-    exports['qb-inventory']:OpenInventory(src, stashName)
+    if Player.PlayerData.job.name ~= 'police' then return end
+
+    local stashId = 'police_locker_' .. Player.PlayerData.citizenid
+
+    -- ox_inventory が有効な場合に対応（クライアント側イベントで制御される想定）
+    TriggerClientEvent('police:client:OpenPersonalLocker', src)
 end)
+
+-- スタッシュ登録
+RegisterNetEvent('qb-policejob:server:RegisterStash', function(stashId)
+    if not ox_inventory then return end
+
+    local src = source
+    local Player = QBCore.Functions.GetPlayer(src)
+    if not Player then return end
+    if Player.PlayerData.job.name ~= 'police' then return end
+
+    -- プレイヤー名を取得（姓 + 名）
+    local charinfo = Player.PlayerData.charinfo
+    local fullName = ("%s %s"):format(charinfo.lastname or "", charinfo.firstname or "")
+
+    -- 表示名に反映
+    local stashLabel = ("警察個人ロッカー（%s）"):format(fullName)
+
+    ox_inventory:RegisterStash(
+        stashId,
+        stashLabel,
+        50,          -- スロット数
+        100000,      -- 最大重量（g）
+        Player.PlayerData.citizenid, -- owner指定
+        { police = 0 } -- job制限：policeジョブであればOK
+    )
+end)
+
+
 
 RegisterNetEvent('qb-policejob:server:trash', function()
     local src = source
@@ -134,16 +181,16 @@ RegisterNetEvent('qb-policejob:server:trash', function()
     })
 end)
 
-RegisterNetEvent('qb-policejob:server:evidence', function(currentEvidence)
-    local src = source
-    local Player = QBCore.Functions.GetPlayer(src)
-    if not Player then return end
-    if Player.PlayerData.job.type ~= 'leo' then return end
-    exports['qb-inventory']:OpenInventory(src, currentEvidence, {
-        maxweight = 4000000,
-        slots = 500,
-    })
-end)
+-- RegisterNetEvent('qb-policejob:server:evidence', function(currentEvidence)
+--     local src = source
+--     local Player = QBCore.Functions.GetPlayer(src)
+--     if not Player then return end
+--     if Player.PlayerData.job.type ~= 'leo' then return end
+--     exports['qb-inventory']:OpenInventory(src, currentEvidence, {
+--         maxweight = 4000000,
+--         slots = 500,
+--     })
+-- end)
 
 RegisterNetEvent('police:server:policeAlert', function(text)
     local src = source

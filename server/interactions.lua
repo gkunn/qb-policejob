@@ -201,10 +201,23 @@ RegisterNetEvent('police:server:RobPlayer', function(playerId)
     local SearchedPlayer = QBCore.Functions.GetPlayer(playerId)
     if not Player or not SearchedPlayer then return end
 
-    local money = SearchedPlayer.PlayerData.money['cash']
-    Player.Functions.AddMoney('cash', money, 'police-player-robbed')
-    SearchedPlayer.Functions.RemoveMoney('cash', money, 'police-player-robbed')
-    exports['qb-inventory']:OpenInventoryById(src, playerId)
-    TriggerClientEvent('QBCore:Notify', SearchedPlayer.PlayerData.source, Lang:t('info.cash_robbed', { money = money }))
-    TriggerClientEvent('QBCore:Notify', Player.PlayerData.source, Lang:t('info.stolen_money', { stolen = money }))
+    -- local money = SearchedPlayer.PlayerData.money['cash']
+    -- Player.Functions.AddMoney('cash', money, 'police-player-robbed')
+    -- SearchedPlayer.Functions.RemoveMoney('cash', money, 'police-player-robbed')
+    -- exports['qb-inventory']:OpenInventoryById(src, playerId)
+    -- ox_inventoryのコードに変更
+    exports.ox_inventory:forceOpenInventory(src, 'player', SearchedPlayer)
+    -- TriggerClientEvent('QBCore:Notify', SearchedPlayer.PlayerData.source, Lang:t('info.cash_robbed', { money = money }))
+    -- TriggerClientEvent('QBCore:Notify', Player.PlayerData.source, Lang:t('info.stolen_money', { stolen = money }))
 end)
+
+-- エスコートしているプレイヤーに通知を送信
+-- RegisterNetEvent('police:server:ReleaseEscort', function(playerId)
+--     local src = QBCore.Functions.GetPlayer(playerId)
+--     TriggerClientEvent('QBCore:Notify', src.PlayerData.source, Lang:t('info.escort_released'), 'success')
+-- end)
+
+-- ox_inventoryの相手のインベントリを見るコード
+RegisterCommand('openplayerinv', function(source, args)
+    exports.ox_inventory:forceOpenInventory(source, 'player', tonumber(args[1]))
+end, true)

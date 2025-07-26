@@ -22,7 +22,7 @@ client_scripts {
 	'client/job.lua',
 	'client/heli.lua',
 	'client/anpr.lua',
-	'client/evidence.lua',
+	-- 'client/evidence.lua',
 	'client/objects.lua',
 	'client/tracker.lua'
 }
@@ -32,7 +32,7 @@ server_scripts {
 	'server/main.lua',
 	'server/commands.lua',
 	'server/interactions.lua',
-	'server/evidence.lua',
+	-- 'server/evidence.lua',
 	'server/objects.lua',
 	'server/vehicle.lua',
 }

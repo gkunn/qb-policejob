@@ -5,17 +5,25 @@ Config.HandCuffItem = 'handcuffs'
 Config.LicenseRank = 2
 Config.ArmoryWhitelist = {}
 Config.WhitelistedVehicles = {}
-Config.PoliceHelicopter = 'POLMAV'
+-- ヘリカメラを使用するヘリを複数登録できるように修正
+Config.PoliceHelicopter = {
+    'POLMAV',
+}
+Config.HeliFovMax = 80.0 -- 最大FOVの設定
+Config.HeliFovMin = 10.0 -- 最小FOVの設定 最大ズームレベル（FOVが小さいほどズームが大きくなる）
+Config.HeliCamZoomSpeed = 20.0 -- ズームスピードの設定
+Config.HeliCamSens = 20.0 -- カメラの感度設定
 Config.FuelResource = 'LegacyFuel' -- supports any that has a GetFuel() and SetFuel() export
 
-Config.AmmoLabels = {
-    AMMO_PISTOL = '9x19mm parabellum bullet',
-    AMMO_SMG = '9x19mm parabellum bullet',
-    AMMO_RIFLE = '7.62x39mm bullet',
-    AMMO_MG = '7.92x57mm mauser bullet',
-    AMMO_SHOTGUN = '12-gauge bullet',
-    AMMO_SNIPER = 'Large caliber bullet',
-}
+-- evidence.lua未使用のためコメントアウト
+-- Config.AmmoLabels = {
+--     AMMO_PISTOL = '9x19mm parabellum bullet',
+--     AMMO_SMG = '9x19mm parabellum bullet',
+--     AMMO_RIFLE = '7.62x39mm bullet',
+--     AMMO_MG = '7.92x57mm mauser bullet',
+--     AMMO_SHOTGUN = '12-gauge bullet',
+--     AMMO_SNIPER = 'Large caliber bullet',
+-- }
 
 Config.Objects = {
     cone = { model = `prop_roadcone02a`, freeze = false },
@@ -36,7 +44,7 @@ Config.Locations = {
         vector4(-455.39, 6002.02, 31.34, 87.93),
     },
     stash = {
-        vector3(453.075, -980.124, 30.889),
+        vector3(443.05, -974.91, 30.69),
     },
     impound = {
         vector3(436.68, -1007.42, 27.32),
@@ -52,11 +60,11 @@ Config.Locations = {
     fingerprint = {
         vector3(460.9667, -989.180, 24.92),
     },
-    evidence = {
-        vector3(442.1722, -996.067, 30.689),
-        vector3(451.7031, -973.232, 30.689),
-        vector3(455.1456, -985.462, 30.689),
-    },
+    -- evidence = {
+    --     vector3(442.1722, -996.067, 30.689),
+    --     vector3(451.7031, -973.232, 30.689),
+    --     vector3(455.1456, -985.462, 30.689),
+    -- },
     stations = {
         { label = 'Police Station',        coords = vector4(428.23, -984.28, 29.76, 3.5) },
         { label = 'Prison',                coords = vector4(1845.903, 2585.873, 45.672, 272.249) },

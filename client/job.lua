@@ -8,7 +8,13 @@ local inArmoury = false
 local inHelicopter = false
 local inImpound = false
 local inGarage = false
-local inEvidence = false
+-- local inEvidence = false
+
+-- スタッシュをox_inventoryに変更
+local ox_inventory = nil
+if GetResourceState('ox_inventory') ~= 'missing' then
+    ox_inventory = exports.ox_inventory
+end
 
 local function loadAnimDict(dict) -- interactions, job,
     while (not HasAnimDictLoaded(dict)) do
@@ -390,38 +396,61 @@ RegisterNetEvent('police:client:TakeOutVehicle', function(data)
     end
 end)
 
-RegisterNetEvent('police:client:EvidenceStashDrawer', function()
-    local pos = GetEntityCoords(PlayerPedId())
-    local currentEvidence = 0
-    for i = 1, #Config.Locations['evidence'] do
-        local v = Config.Locations['evidence'][i]
-        if #(pos - vector3(v.x, v.y, v.z)) < 2 then
-            currentEvidence = i
-        end
-    end
-    local takeLoc = Config.Locations['evidence'][currentEvidence]
+-- RegisterNetEvent('police:client:EvidenceStashDrawer', function()
+--     local pos = GetEntityCoords(PlayerPedId())
+--     local currentEvidence = 0
+--     for i = 1, #Config.Locations['evidence'] do
+--         local v = Config.Locations['evidence'][i]
+--         if #(pos - vector3(v.x, v.y, v.z)) < 2 then
+--             currentEvidence = i
+--         end
+--     end
+--     local takeLoc = Config.Locations['evidence'][currentEvidence]
 
-    if not takeLoc then return end
+--     if not takeLoc then return end
 
-    if #(pos - takeLoc) <= 1.0 then
-        local drawer = exports['qb-input']:ShowInput({
-            header = Lang:t('info.evidence_stash', { value = currentEvidence }),
-            submitText = 'open',
-            inputs = {
-                {
-                    type = 'number',
-                    isRequired = true,
-                    name = 'slot',
-                    text = Lang:t('info.slot')
-                }
-            }
+--     if #(pos - takeLoc) <= 1.0 then
+--         local drawer = exports['qb-input']:ShowInput({
+--             header = Lang:t('info.evidence_stash', { value = currentEvidence }),
+--             submitText = 'open',
+--             inputs = {
+--                 {
+--                     type = 'number',
+--                     isRequired = true,
+--                     name = 'slot',
+--                     text = Lang:t('info.slot')
+--                 }
+--             }
+--         })
+--         if drawer then
+--             if not drawer.slot then return end
+--             TriggerServerEvent('qb-policejob:server:evidence', Lang:t('info.current_evidence', { value = currentEvidence, value2 = drawer.slot }))
+--         end
+--     else
+--         exports['qb-menu']:closeMenu()
+--     end
+-- end)
+
+-- スタッシュ
+RegisterNetEvent('police:client:OpenPersonalLocker', function()
+    local citizenId = QBCore.Functions.GetPlayerData().citizenid
+    local stashId = 'police_locker_' .. citizenId
+
+    TriggerServerEvent("InteractSound_SV:PlayOnSource", "StashOpen", 0.4)
+
+    if not ox_inventory then
+        -- fallback: qb-inventory
+        TriggerServerEvent("inventory:server:OpenInventory", "stash", stashId, {
+            maxweight = 100000,
+            slots = 50,
         })
-        if drawer then
-            if not drawer.slot then return end
-            TriggerServerEvent('qb-policejob:server:evidence', Lang:t('info.current_evidence', { value = currentEvidence, value2 = drawer.slot }))
-        end
+        TriggerEvent("inventory:client:SetCurrentStash", stashId)
     else
-        exports['qb-menu']:closeMenu()
+        -- ox_inventory
+        if not ox_inventory:openInventory('stash', { id = stashId, owner = citizenId }) then
+            TriggerServerEvent('qb-policejob:server:RegisterStash', stashId)
+            ox_inventory:openInventory('stash', { id = stashId, owner = citizenId })
+        end
     end
 end)
 
@@ -441,12 +470,38 @@ RegisterNetEvent('qb-police:client:scanFingerPrint', function()
     end
 end)
 
+-- RegisterNetEvent('qb-police:client:spawnHelicopter', function(k)
+--     if IsPedInAnyVehicle(PlayerPedId(), false) then
+--         QBCore.Functions.DeleteVehicle(GetVehiclePedIsIn(PlayerPedId()))
+--     else
+--         local coords = Config.Locations['helicopter'][k]
+--         if not coords then coords = GetEntityCoords(PlayerPedId()) end
+--         QBCore.Functions.TriggerCallback('QBCore:Server:SpawnVehicle', function(netId)
+--             local veh = NetToVeh(netId)
+--             SetVehicleLivery(veh, 0)
+--             SetVehicleMod(veh, 0, 48)
+--             SetVehicleNumberPlateText(veh, 'ZULU' .. tostring(math.random(1000, 9999)))
+--             SetEntityHeading(veh, coords.w)
+--             exports[Config.FuelResource]:SetFuel(veh, 100.0)
+--             closeMenuFull()
+--             TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
+--             TriggerEvent('vehiclekeys:client:SetOwner', QBCore.Functions.GetPlate(veh))
+--             SetVehicleEngineOn(veh, true, true)
+--         end, Config.PoliceHelicopter, coords, true)
+--     end
+-- end)
+
+-- ヘリカメラを使用するヘリを複数登録できるように修正
 RegisterNetEvent('qb-police:client:spawnHelicopter', function(k)
     if IsPedInAnyVehicle(PlayerPedId(), false) then
         QBCore.Functions.DeleteVehicle(GetVehiclePedIsIn(PlayerPedId()))
     else
         local coords = Config.Locations['helicopter'][k]
         if not coords then coords = GetEntityCoords(PlayerPedId()) end
+
+        -- 🚁 使用するヘリモデルをここで選択（先頭またはランダム）
+        local model = Config.PoliceHelicopter[1] -- 先頭のモデル
+
         QBCore.Functions.TriggerCallback('QBCore:Server:SpawnVehicle', function(netId)
             local veh = NetToVeh(netId)
             SetVehicleLivery(veh, 0)
@@ -458,7 +513,7 @@ RegisterNetEvent('qb-police:client:spawnHelicopter', function(k)
             TaskWarpPedIntoVehicle(PlayerPedId(), veh, -1)
             TriggerEvent('vehiclekeys:client:SetOwner', QBCore.Functions.GetPlate(veh))
             SetVehicleEngineOn(veh, true, true)
-        end, Config.PoliceHelicopter, coords, true)
+        end, model, coords, true)
     end
 end)
 
@@ -540,22 +595,22 @@ local function fingerprint()
 end
 
 -- Evidence Thread
-local function evidence()
-    CreateThread(function()
-        while true do
-            Wait(0)
-            if inEvidence and PlayerJob.type == 'leo' then
-                if PlayerJob.onduty then sleep = 5 end
-                if IsControlJustReleased(0, 38) then
-                    TriggerEvent('police:client:EvidenceStashDrawer')
-                    break
-                end
-            else
-                break
-            end
-        end
-    end)
-end
+-- local function evidence()
+--     CreateThread(function()
+--         while true do
+--             Wait(0)
+--             if inEvidence and PlayerJob.type == 'leo' then
+--                 if PlayerJob.onduty then sleep = 5 end
+--                 if IsControlJustReleased(0, 38) then
+--                     TriggerEvent('police:client:EvidenceStashDrawer')
+--                     break
+--                 end
+--             else
+--                 break
+--             end
+--         end
+--     end)
+-- end
 
 -- Helicopter Thread
 local function heli()
@@ -648,8 +703,10 @@ if Config.UseTarget then
             }, {
                 options = {
                     {
-                        type = 'server',
-                        event = 'qb-policejob:server:stash',
+                        -- type = 'server',
+                        -- event = 'qb-policejob:server:stash',
+                        type = 'client',
+                        event = 'police:client:OpenPersonalLocker',
                         icon = 'fas fa-dungeon',
                         label = Lang:t('target.open_personal_stash'),
                         jobType = 'leo',
@@ -702,25 +759,25 @@ if Config.UseTarget then
         end
 
         -- Evidence
-        for i = 1, #Config.Locations['evidence'] do
-            local v = Config.Locations['evidence'][i]
-            exports['qb-target']:AddCircleZone('PoliceEvidence_' .. i, vector3(v.x, v.y, v.z), 0.5, {
-                name = 'PoliceEvidence_' .. i,
-                useZ = true,
-                debugPoly = false,
-            }, {
-                options = {
-                    {
-                        type = 'client',
-                        event = 'police:client:EvidenceStashDrawer',
-                        icon = 'fas fa-dungeon',
-                        label = Lang:t('target.open_evidence_stash'),
-                        jobType = 'leo',
-                    },
-                },
-                distance = 1.5
-            })
-        end
+        -- for i = 1, #Config.Locations['evidence'] do
+        --     local v = Config.Locations['evidence'][i]
+        --     exports['qb-target']:AddCircleZone('PoliceEvidence_' .. i, vector3(v.x, v.y, v.z), 0.5, {
+        --         name = 'PoliceEvidence_' .. i,
+        --         useZ = true,
+        --         debugPoly = false,
+        --     }, {
+        --         options = {
+        --             {
+        --                 type = 'client',
+        --                 event = 'police:client:EvidenceStashDrawer',
+        --                 icon = 'fas fa-dungeon',
+        --                 label = Lang:t('target.open_evidence_stash'),
+        --                 jobType = 'leo',
+        --             },
+        --         },
+        --         distance = 1.5
+        --     })
+        -- end
     end)
 else
     -- Toggle Duty
@@ -835,31 +892,31 @@ else
     end)
 
     -- Evidence
-    local evidenceZones = {}
-    for i = 1, #Config.Locations['evidence'] do
-        local v = Config.Locations['evidence'][i]
-        evidenceZones[#evidenceZones + 1] = BoxZone:Create(
-            vector3(v.x, v.y, v.z), 2, 1, {
-                name = 'box_zone',
-                debugPoly = false,
-                minZ = v.z - 1,
-                maxZ = v.z + 1,
-            })
-    end
+    -- local evidenceZones = {}
+    -- for i = 1, #Config.Locations['evidence'] do
+    --     local v = Config.Locations['evidence'][i]
+    --     evidenceZones[#evidenceZones + 1] = BoxZone:Create(
+    --         vector3(v.x, v.y, v.z), 2, 1, {
+    --             name = 'box_zone',
+    --             debugPoly = false,
+    --             minZ = v.z - 1,
+    --             maxZ = v.z + 1,
+    --         })
+    -- end
 
-    local evidenceCombo = ComboZone:Create(evidenceZones, { name = 'evidenceCombo', debugPoly = false })
-    evidenceCombo:onPlayerInOut(function(isPointInside)
-        if isPointInside then
-            inEvidence = true
-            if PlayerJob.type == 'leo' and PlayerJob.onduty then
-                exports['qb-core']:DrawText(Lang:t('info.evidence_stash_prompt'), 'left')
-                evidence()
-            end
-        else
-            inEvidence = false
-            exports['qb-core']:HideText()
-        end
-    end)
+    -- local evidenceCombo = ComboZone:Create(evidenceZones, { name = 'evidenceCombo', debugPoly = false })
+    -- evidenceCombo:onPlayerInOut(function(isPointInside)
+    --     if isPointInside then
+    --         inEvidence = true
+    --         if PlayerJob.type == 'leo' and PlayerJob.onduty then
+    --             exports['qb-core']:DrawText(Lang:t('info.evidence_stash_prompt'), 'left')
+    --             evidence()
+    --         end
+    --     else
+    --         inEvidence = false
+    --         exports['qb-core']:HideText()
+    --     end
+    -- end)
 end
 
 CreateThread(function()

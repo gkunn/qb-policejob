@@ -1,8 +1,8 @@
-local fov_max = 80.0
-local fov_min = 10.0        -- max zoom level (smaller fov is more zoom)
-local zoomspeed = 2.0       -- camera zoom speed
-local speed_lr = 3.0        -- speed by which the camera pans left-right
-local speed_ud = 3.0        -- speed by which the camera pans up-down
+local fov_max = Config.HeliFovMax
+local fov_min = Config.HeliFovMin        -- max zoom level (smaller fov is more zoom)
+local zoomspeed = Config.HeliCamZoomSpeed       -- camera zoom speed
+local speed_lr = Config.HeliCamSens        -- speed by which the camera pans left-right
+local speed_ud = Config.HeliCamSens        -- speed by which the camera pans up-down
 local toggle_helicam = 51   -- control id of the button by which to toggle the helicam mode. Default: INPUT_CONTEXT (E)
 local toggle_vision = 25    -- control id to toggle vision mode. Default: INPUT_AIM (Right mouse btn)
 local toggle_rappel = 154   -- control id to rappel out of the heli. Default: INPUT_DUCK (X)
@@ -20,10 +20,25 @@ local locked_on_vehicle = nil
 
 -- Functions
 
+-- local function IsPlayerInPolmav()
+-- 	local lPed = PlayerPedId()
+-- 	local vehicle = GetVehiclePedIsIn(lPed)
+-- 	return IsVehicleModel(vehicle, GetHashKey(Config.PoliceHelicopter))
+-- end
+
+-- ヘリカメラを使用するヘリを複数登録できるように修正
 local function IsPlayerInPolmav()
 	local lPed = PlayerPedId()
-	local vehicle = GetVehiclePedIsIn(lPed)
-	return IsVehicleModel(vehicle, GetHashKey(Config.PoliceHelicopter))
+    local vehicle = GetVehiclePedIsIn(lPed, false)
+    local model = GetEntityModel(vehicle)
+
+    for _, heliModel in ipairs(Config.PoliceHelicopter) do
+        if model == GetHashKey(heliModel) then
+            return true
+        end
+    end
+
+    return false
 end
 
 local function IsHeliHighEnough(heli)
@@ -124,6 +139,31 @@ local function RenderVehicleInfo(vehicle)
 	})
 end
 
+-- HeliのサーマルON/OFF制御
+local function disableHelicam()
+    isScanned = false
+    scanValue = 0
+    SendNUIMessage({
+        type = 'disablescan',
+    })
+    SendNUIMessage({
+        type = 'heliclose',
+    })
+end
+
+local function scancancel()
+	isScanned = false
+	scanValue = 0
+	SendNUIMessage({
+		type = 'heliscan',
+		scanvalue = scanValue,
+	})
+	SendNUIMessage({
+		type = 'disablescan',
+		
+	})
+end
+
 -- Events
 RegisterNetEvent('heli:client:spotlight', function(serverID, state)
 	local heli = GetVehiclePedIsIn(GetPlayerPed(GetPlayerFromServerId(serverID)), false)
@@ -183,14 +223,8 @@ CreateThread(function()
 							if IsControlJustPressed(0, toggle_helicam) then -- Toggle Helicam
 								PlaySoundFrontend(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
 								helicam = false
-								isScanned = false
-								scanValue = 0
-								SendNUIMessage({
-									type = 'disablescan',
-								})
-								SendNUIMessage({
-									type = 'heliclose',
-								})
+								-- disableHelicamに処理をまとめる
+								disableHelicam()
 							end
 							if IsControlJustPressed(0, toggle_vision) then
 								PlaySoundFrontend(-1, 'SELECT', 'HUD_FRONTEND_DEFAULT_SOUNDSET', false)
@@ -212,18 +246,11 @@ CreateThread(function()
 										SetCamRot(cam, rot, 2)
 										SetCamFov(cam, fov)
 										RenderScriptCams(true, false, 0, 1, 0)
-										isScanned = false
-										scanValue = 0
-										SendNUIMessage({
-											type = 'disablescan',
-										})
+										scancancel() -- Reset scan state
 									end
 								else
-									isScanned = false
-									SendNUIMessage({
-										type = 'disablescan',
-									})
 									locked_on_vehicle = nil -- Cam will auto unlock when entity doesn't exist anyway
+									scancancel() -- Reset scan state
 								end
 							else
 								zoomvalue = (1.0 / (fov_max - fov_min)) * (fov - fov_min)
@@ -232,7 +259,7 @@ CreateThread(function()
 								if DoesEntityExist(vehicle_detected) then
 									isScanning = true
 								else
-									isScanning = false
+									scancancel() -- Reset scan state
 								end
 							end
 							HandleZoom(cam)
@@ -246,6 +273,10 @@ CreateThread(function()
 							Wait(0)
 						end
 						helicam = false
+						-- 判定処理の追加
+						if not (not IsEntityDead(lPed) and (GetVehiclePedIsIn(lPed) == heli) and IsHeliHighEnough(heli)) then
+							disableHelicam()
+						end
 						ClearTimecycleModifier()
 						fov = (fov_max + fov_min) * 0.5 -- reset to starting zoom level
 						RenderScriptCams(false, false, 0, 1, 0) -- Return to gameplay camera
