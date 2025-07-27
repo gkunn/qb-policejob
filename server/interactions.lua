@@ -8,7 +8,9 @@ RegisterNetEvent('police:server:SearchPlayer', function()
     if player ~= -1 and distance < 2.5 then
         local SearchedPlayer = QBCore.Functions.GetPlayer(tonumber(player))
         if not SearchedPlayer then return end
-        exports['qb-inventory']:OpenInventoryById(src, tonumber(player))
+        -- exports['qb-inventory']:OpenInventoryById(src, tonumber(player))
+        -- ox_inventoryのコードに変更
+        exports.ox_inventory:forceOpenInventory(src, 'player', tonumber(player))
         TriggerClientEvent('QBCore:Notify', src, Lang:t('info.cash_found', { cash = SearchedPlayer.PlayerData.money['cash'] }))
         TriggerClientEvent('QBCore:Notify', player, Lang:t('info.being_searched'))
     else
@@ -206,7 +208,7 @@ RegisterNetEvent('police:server:RobPlayer', function(playerId)
     -- SearchedPlayer.Functions.RemoveMoney('cash', money, 'police-player-robbed')
     -- exports['qb-inventory']:OpenInventoryById(src, playerId)
     -- ox_inventoryのコードに変更
-    exports.ox_inventory:forceOpenInventory(src, 'player', SearchedPlayer)
+    exports.ox_inventory:forceOpenInventory(src, 'player', playerId)
     -- TriggerClientEvent('QBCore:Notify', SearchedPlayer.PlayerData.source, Lang:t('info.cash_robbed', { money = money }))
     -- TriggerClientEvent('QBCore:Notify', Player.PlayerData.source, Lang:t('info.stolen_money', { stolen = money }))
 end)
