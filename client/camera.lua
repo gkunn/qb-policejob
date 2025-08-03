@@ -167,6 +167,8 @@ CreateThread(function()
                     type = 'disablecam',
                 })
                 DoScreenFadeIn(250)
+                -- アニメーションの制御をps-mdtで管理し、TriggerEventで呼び出す
+                TriggerServerEvent('mdt:server:closeCam', source)
             end
 
             ---------------------------------------------------------------------------
